@@ -554,7 +554,7 @@ int main(int argc, char** argv)
                 exitCode = -1;
             }
         #elif defined(__GNUC__) || defined(__clang__)
-            if (do_test64(lzcnt64_gcc_x64, "lzcnt32_gcc_x64") != 0) {
+            if (do_test64(lzcnt64_gcc_x64, "lzcnt64_gcc_x64") != 0) {
                 exitCode = -1;
             }
         #endif
