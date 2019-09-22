@@ -62,15 +62,11 @@ has_lzcnt_hard
 #include <intrin.h>
 #endif
 
-/* __ARM_FEATURE_CLZ
- * __ARM_ARCH
- * */
-
 #if defined(__i386) || defined(_M_IX86)
     #define ARCH_X86
 #elif defined(__x86_64__) || defined(_M_X64)
     #define ARCH_X64
-#elif (defined(__arm__) && defined(__ARM_ARCH) && _ARM_ARCH >= 5) || (defined(_M_ARM) && _M_ARM >= 5) || defined(__ARM_FEATURE_CLZ) /* ARM (Architecture Version 5) */
+#elif (defined(__arm__) && defined(__ARM_ARCH) && __ARM_ARCH >= 5) || (defined(_M_ARM) && _M_ARM >= 5) || defined(__ARM_FEATURE_CLZ) /* ARM (Architecture Version 5) */
     #define ARCH_ARM
 #endif
 
@@ -285,7 +281,11 @@ int has_lzcnt_hard()
             {
                 unsigned int r;
                 __asm__ __volatile__ (
-                    "clz %Q[out], %Q[in]" : [out]"=r"(r) : [in]"r"(x)
+                #if defined(ARCH_32BIT)
+                    "clz %[out], %[in]" : [out]"=r"(r) : [in]"r"(x)
+                #else
+                    "clz %w[out], %w[in]" : [out]"=r"(r) : [in]"r"(x)
+                #endif
                 );
                 
                 return r;
@@ -475,7 +475,7 @@ int do_test64(unsigned int (* lzcnt64proc)(unsigned long long), const char* proc
         
         r = lzcnt64proc(x);
         if (r != i) {
-            printf("\n  Failed: x=%ull r=%ull", x, r);
+            printf("\n  Failed: x=%llu r=%u", x, r);
             testResult = -1;
         }
     }
