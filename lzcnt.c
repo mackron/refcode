@@ -42,7 +42,7 @@ lzcnt32_hard
 lzcnt64_hard
     High level helper for calling an hardware implementation. This will choose either lzcnt32_msvc_x86()/lzcnt64_msvc_x64() or lzcnt32_gcc_x86()/
     lzcnt64_gcc_x64() depending on the environment. Note that this is only available when targeting x86/64. lzcnt64_hard() is only available
-    when compiling as 64-bit. You should only call this if has_lzcnt() returns non-zero.
+    when compiling as 64-bit. You should only call this if has_lzcnt_hard() returns non-zero.
 
 lzcnt32_soft
 lzcnt64_soft
