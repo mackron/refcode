@@ -491,7 +491,6 @@ int do_test64(unsigned int (* lzcnt64proc)(unsigned long long), const char* proc
 int main(int argc, char** argv)
 {
     int exitCode = 0;
-    unsigned int i;
 
     /* has_lzcnt_hard() */
 #if defined(_WIN64) || defined(_LP64) || defined(__LP64__)
