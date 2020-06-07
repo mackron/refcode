@@ -12,7 +12,6 @@ and then copy the implementation section into a .c file.
 
 This is implemented in terms of a condition variable and a mutex.
 */
-
 /* HEADER SECTION */
 #include <pthread.h>
 
@@ -145,19 +144,26 @@ void* producer_thread(void* pUserData)
     (void)pUserData;
 
     while (g_done == 0) {
+        int result;
+
         pthread_mutex_lock(&g_lock);
         {
-            int result = pthread_sem_signal(&g_sem);
-            if (result == 0) {
-                g_counter += 1; /* Produce data. */
-                printf("Produced: %d\n", g_counter);
-            } else {
-                printf("Failed to signal semaphore.\n");
+            if (g_counter == 1000) {
+                pthread_mutex_unlock(&g_lock);
+                continue;
             }
+
+            g_counter += 1; /* Produce data. */
+            printf("Produced: %d\n", g_counter);
         }
         pthread_mutex_unlock(&g_lock);
 
-        do_sleep(1);
+        result = pthread_sem_signal(&g_sem);
+        if (result != 0) {
+            printf("Failed to signal semaphore. %d\n", g_counter);
+        }
+        
+        //do_sleep(1);
     }
 
     printf("Producer: DONE\n");
