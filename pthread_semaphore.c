@@ -1,5 +1,5 @@
 /*
-Cross platform semaphores. Choice of public domain of MIT-0.
+Semaphore based on pthread. Choice of public domain of MIT-0.
 
 David Reid - mackron@gmail.com
 
