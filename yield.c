@@ -22,7 +22,7 @@ void ref_yield(void)
 {
 #if defined(__i386) || defined(_M_IX86) || defined(__x86_64__) || defined(_M_X64)
     /* x86/x64 */
-    #if defined(_MSC_VER)
+    #if defined(_MSC_VER) && !defined(__clang__)
         #if _MSC_VER >= 1400
             _mm_pause();
         #else
