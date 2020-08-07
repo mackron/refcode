@@ -267,7 +267,7 @@ int has_tzcnt_hard()
                 */
                 unsigned int r;
                 __asm__ __volatile__ (
-                    "tzcnt{l %1, %0| %0, %1}" : "=r"(r) : "r"(x)
+                    "tzcnt{l %1, %0| %0, %1}" : "=r"(r) : "r"(x) : "cc"
                 );
 
                 return r;
@@ -340,7 +340,7 @@ int has_tzcnt_hard()
                 */
                 unsigned long long r;
                 __asm__ __volatile__ (
-                    "tzcnt{ %1, %0| %0, %1}" : "=r"(r) : "r"(x)
+                    "tzcnt{ %1, %0| %0, %1}" : "=r"(r) : "r"(x) : "cc"
                 );
 
                 return r;
