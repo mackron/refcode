@@ -31,7 +31,7 @@ void ref_yield(void)
     #else
         __asm__ __volatile__ ("pause");
     #endif
-#elif (defined(__arm__) && defined(__ARM_ARCH) && __ARM_ARCH >= 6) || (defined(_M_ARM) && _M_ARM >= 6)
+#elif (defined(__arm__) && defined(__ARM_ARCH) && __ARM_ARCH >= 7) || (defined(_M_ARM) && _M_ARM >= 7) || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6T2__)
     /* ARM */
     #if defined(_MSC_VER)
         /* Apparently there is a __yield() intrinsic that's compatible with ARM, but I cannot find documentation for it nor can I find where it's declared. */
