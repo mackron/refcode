@@ -207,8 +207,6 @@ typedef int spinlock_memory_order;
     }
 #endif
 
-
-
 static SPINLOCK_INLINE void spinlock_lock(spinlock_t* lock)
 {
     for (;;) {
@@ -226,7 +224,7 @@ static SPINLOCK_INLINE void spinlock_unlock(spinlock_t* lock)
 {
     spinlock_atomic_exchange_explicit_32(lock, 0, spinlock_memory_order_release);
 }
-/* END spinlock.h*/
+/* END spinlock.h */
 
 #endif /* spinlock_h */
 
