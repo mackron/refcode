@@ -1,3 +1,15 @@
+/*
+This provides a simple spinlock with support for a decent number of compilers and architectures. If you only care about modern
+versions of GCC or Clang, skip this library and just use the __atomic builtins directly. Where this is useful is when you want
+to support older compilers and MSVC-like compilers that do not support GCC-style atomic intrinsics.
+
+The intent is to just copy this code into your project either manually or with a tool. It's not intended to be used as a normal
+library. I personally use a tool to amalgamate this code into other projects of mine. I'm not interested in turning this into a
+normal library so don't bother asking.
+
+As an alternative to this, you can also consider my other library c89atomic which provides a more complete set of atomic
+operations, including a spinlock implementation. Indeed, this library is generated from the code in c89atomic.
+*/
 #ifndef spinlock_h
 #define spinlock_h
 
@@ -436,7 +448,7 @@ static SPINLOCK_INLINE void spinlock_unlock(volatile spinlock_t* pSpinlock)
 /* TODO: Write a proper test program here. */
 int main(int argc, char** argv)
 {
-    spinlock_t lock;
+    spinlock_t lock = 0;
 
     spinlock_lock(&lock);
     {
