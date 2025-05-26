@@ -1,0 +1,79 @@
+spinlock_c  := <../spinlock.c>;
+inline_h    :: <../inline.h>;
+arch_h      :: <../arch.h>;
+c89atomic_h :: <../../c89atomic/c89atomic.h>;
+
+
+remove_block_comments :: function(src:string) string
+{
+    return @(src)
+        ["/\*[^*]*\*+(?:[^/*][^*]*\*+)*/"] <= "" // Remove all block comments to keep things clean.
+    ;
+}
+
+remove_trailing_whitespace :: function(src:string) string
+{
+    return @(src)
+        ["[ \t]+(?=(?:\R|$))"]             <= "" // Remove trailing whitespace.
+    ;
+}
+
+minify :: function(src:string) string
+{
+    return remove_block_comments(remove_trailing_whitespace(src));
+}
+
+
+
+spinlock_c("/\* BEG inline.h \*/\R":"\R/\* END inline.h \*/") = @(inline_h)
+    ["\bNS_"] <= "SPINLOCK_"
+    ["\bns_"] <= "spinlock_"
+;
+
+spinlock_c("/\* BEG arch.h \*/\R":"\R/\* END arch.h \*/") = @(arch_h)
+    ["\bNS_"] <= "SPINLOCK_"
+    ["\bns_"] <= "spinlock_"
+;
+
+
+rename_c89atomic_namespace :: function(src:string) string
+{
+    return @(src)
+        ["c89atomic_uint32"]       <= "unsigned int"
+        ["\bc89atomic_spinlock\b"] <= "spinlock_t"
+        ["\bc89atomic_spinlock_"]  <= "spinlock_"
+        ["\bc89atomic_flag\b"]     <= "spinlock_t"
+        ["\bC89ATOMIC_FLAG"]       <= "SPINLOCK"
+        ["\bc89atomic_flag"]       <= "spinlock"
+        ["\bC89ATOMIC_"]           <= "SPINLOCK_"
+        ["\bc89atomic_"]           <= "spinlock_"
+    ;
+}
+
+c89atomic_codepath := rename_c89atomic_namespace(@(c89atomic_h("/\* BEG c89atomic_codepath.h \*/\R" : "\R/\* END c89atomic_codepath.h \*/")));
+c89atomic_flag     := rename_c89atomic_namespace(@(c89atomic_h("/\* BEG c89atomic_flag.h \*/\R"     : "\R/\* END c89atomic_flag.h \*/")));
+c89atomic_spinlock := rename_c89atomic_namespace(@(c89atomic_h("/\* BEG c89atomic_spinlock.h \*/\R" : "\R/\* END c89atomic_spinlock.h \*/")));
+
+
+spinlock : string;
+spinlock
+    ["$"] <= c89atomic_codepath
+    ["$"] <= "\n\n"
+    ["$"] <= c89atomic_flag
+    ["$"] <= "\n\n"
+    ["$"] <= c89atomic_spinlock
+;
+
+// Remove some unnecessary functions.
+spinlock["#define spinlock_test_and_set\(dst\).*\R"] = "";
+spinlock["#define spinlock_clear\(dst\).*\R\R"] = "";
+spinlock["\Rtypedef spinlock_t spinlock_t;"] = "";
+spinlock = minify(spinlock);
+
+// Remove some excess lines which are annoying me.
+spinlock["^\R"] = "";
+spinlock["#endif\R\R\R"] = "#endif\n\n";
+spinlock["#(if.*|elif.*|else)\R\s*\R(\s*)#"] = "#$1\n$2#";  // Do this twice as a hack to get some recursive replacements working. Too lazy to figure out the regex to make this work right now.
+spinlock["#(if.*|elif.*|else)\R\s*\R(\s*)#"] = "#$1\n$2#";
+
+spinlock_c("/\* BEG spinlock.h \*/\R":"\R/\* END spinlock.h \*/") = spinlock;
