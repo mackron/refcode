@@ -47,3 +47,8 @@ endif()
 add_library(spinlock STATIC spinlock.c)
 target_compile_options    (spinlock PRIVATE ${COMPILE_OPTIONS})
 target_include_directories(spinlock PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
+
+# allocation_callbacks
+add_library(allocation_callbacks STATIC allocation_callbacks.c)
+target_compile_options    (allocation_callbacks PRIVATE ${COMPILE_OPTIONS})
+target_include_directories(allocation_callbacks PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
