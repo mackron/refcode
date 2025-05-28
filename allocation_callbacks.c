@@ -24,7 +24,7 @@ typedef size_t ns_uintptr;  /* Technically incorrect, but good enough for my pur
 
 
 
-/* BEG ns_allocation_callbacks.h */
+/* BEG allocation_callbacks.h */
 typedef struct ns_allocation_callbacks
 {
     void* pUserData;
@@ -39,11 +39,11 @@ NS_API void* ns_realloc(void* p, size_t sz, const ns_allocation_callbacks* pAllo
 NS_API void  ns_free(void* p, const ns_allocation_callbacks* pAllocationCallbacks);
 NS_API void* ns_aligned_malloc(size_t sz, size_t alignment, const ns_allocation_callbacks* pAllocationCallbacks);
 NS_API void  ns_aligned_free(void* p, const ns_allocation_callbacks* pAllocationCallbacks);
-/* END ns_allocation_callbacks.h */
+/* END allocation_callbacks.h */
 
 
 
-/* BEG ns_allocation_callbacks.c */
+/* BEG allocation_callbacks.c */
 #if !defined(NS_MALLOC) || !defined(NS_REALLOC) || !defined(NS_FREE)
 #include <stdlib.h> /* For malloc, realloc, free. */
 #endif
@@ -179,7 +179,7 @@ NS_API void ns_aligned_free(void* p, const ns_allocation_callbacks* pAllocationC
 {
     ns_free(((void**)p)[-1], pAllocationCallbacks);
 }
-/* END ns_allocation_callbacks.c */
+/* END allocation_callbacks.c */
 
 
 
