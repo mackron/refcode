@@ -23,6 +23,7 @@ typedef enum
     NS_INVALID_FILE                  = -10,
     NS_TOO_BIG                       = -11,
     NS_PATH_TOO_LONG                 = -12,
+    NS_NAME_TOO_LONG                 = -13,
     NS_NOT_DIRECTORY                 = -14,
     NS_IS_DIRECTORY                  = -15,
     NS_DIRECTORY_NOT_EMPTY           = -16,
@@ -39,6 +40,8 @@ typedef enum
     NS_DEADLOCK                      = -27,
     NS_TOO_MANY_LINKS                = -28,
     NS_NOT_IMPLEMENTED               = -29,
+    NS_NO_MESSAGE                    = -30,
+    NS_BAD_MESSAGE                   = -31,
     NS_NO_DATA_AVAILABLE             = -32,
     NS_INVALID_DATA                  = -33,
     NS_TIMEOUT                       = -34,
@@ -69,6 +72,10 @@ typedef enum
 } ns_result;
 /* END result.h */
 
+/* BEG result_to_string.h */
+NS_API const char* ns_result_to_string(ns_result result);
+/* END result_to_string.h */
+
 /* BEG result_from_errno.h */
 NS_API ns_result ns_result_from_errno(int error);
 /* END result_from_errno.h */
@@ -78,6 +85,69 @@ NS_API ns_result ns_result_from_GetLastError(void);
 /* END result_from_GetLastError.h */
 
 
+
+/* BEG result_to_string.c */
+NS_API const char* ns_result_to_string(ns_result result)
+{
+    switch (result)
+    {
+        case NS_SUCCESS:                       return "No error";
+        case NS_ERROR:                         return "Unknown error";
+        case NS_INVALID_ARGS:                  return "Invalid argument";
+        case NS_INVALID_OPERATION:             return "Invalid operation";
+        case NS_OUT_OF_MEMORY:                 return "Out of memory";
+        case NS_OUT_OF_RANGE:                  return "Out of range";
+        case NS_ACCESS_DENIED:                 return "Permission denied";
+        case NS_DOES_NOT_EXIST:                return "Resource does not exist";
+        case NS_ALREADY_EXISTS:                return "Resource already exists";
+        case NS_TOO_MANY_OPEN_FILES:           return "Too many open files";
+        case NS_INVALID_FILE:                  return "Invalid file";
+        case NS_TOO_BIG:                       return "Too large";
+        case NS_PATH_TOO_LONG:                 return "Path too long";
+        case NS_NAME_TOO_LONG:                 return "Name too long";
+        case NS_NOT_DIRECTORY:                 return "Not a directory";
+        case NS_IS_DIRECTORY:                  return "Is a directory";
+        case NS_DIRECTORY_NOT_EMPTY:           return "Directory not empty";
+        case NS_AT_END:                        return "At end";
+        case NS_NO_SPACE:                      return "No space available";
+        case NS_BUSY:                          return "Device or resource busy";
+        case NS_IO_ERROR:                      return "Input/output error";
+        case NS_INTERRUPT:                     return "Interrupted";
+        case NS_UNAVAILABLE:                   return "Resource unavailable";
+        case NS_ALREADY_IN_USE:                return "Resource already in use";
+        case NS_BAD_ADDRESS:                   return "Bad address";
+        case NS_BAD_SEEK:                      return "Illegal seek";
+        case NS_BAD_PIPE:                      return "Broken pipe";
+        case NS_DEADLOCK:                      return "Deadlock";
+        case NS_TOO_MANY_LINKS:                return "Too many links";
+        case NS_NOT_IMPLEMENTED:               return "Not implemented";
+        case NS_NO_MESSAGE:                    return "No message of desired type";
+        case NS_BAD_MESSAGE:                   return "Invalid message";
+        case NS_NO_DATA_AVAILABLE:             return "No data available";
+        case NS_INVALID_DATA:                  return "Invalid data";
+        case NS_TIMEOUT:                       return "Timeout";
+        case NS_NO_NETWORK:                    return "Network unavailable";
+        case NS_NOT_UNIQUE:                    return "Not unique";
+        case NS_NOT_SOCKET:                    return "Socket operation on non-socket";
+        case NS_NO_ADDRESS:                    return "Destination address required";
+        case NS_BAD_PROTOCOL:                  return "Protocol wrong type for socket";
+        case NS_PROTOCOL_UNAVAILABLE:          return "Protocol not available";
+        case NS_PROTOCOL_NOT_SUPPORTED:        return "Protocol not supported";
+        case NS_PROTOCOL_FAMILY_NOT_SUPPORTED: return "Protocol family not supported";
+        case NS_ADDRESS_FAMILY_NOT_SUPPORTED:  return "Address family not supported";
+        case NS_SOCKET_NOT_SUPPORTED:          return "Socket type not supported";
+        case NS_CONNECTION_RESET:              return "Connection reset";
+        case NS_ALREADY_CONNECTED:             return "Already connected";
+        case NS_NOT_CONNECTED:                 return "Not connected";
+        case NS_CONNECTION_REFUSED:            return "Connection refused";
+        case NS_NO_HOST:                       return "No host";
+        case NS_IN_PROGRESS:                   return "Operation in progress";
+        case NS_CANCELLED:                     return "Operation cancelled";
+        case NS_MEMORY_ALREADY_MAPPED:         return "Memory already mapped";
+        default:                               return "Unknown error";
+    }
+}
+/* END result_to_string.c */
 
 
 /* BEG result_from_errno.c */
@@ -345,3 +415,10 @@ NS_API ns_result ns_result_from_GetLastError(void)
 }
 #endif /* _WIN32 */
 /* END result_from_GetLastError.c */
+
+
+
+int main(void)
+{
+    return 0;
+}
