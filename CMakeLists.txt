@@ -44,21 +44,26 @@ endif()
 
 
 # spinlock
-add_library(spinlock STATIC spinlock.c)
+add_executable(spinlock spinlock.c)
 target_compile_options    (spinlock PRIVATE ${COMPILE_OPTIONS})
 target_include_directories(spinlock PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
 
 # allocation_callbacks
-add_library(allocation_callbacks STATIC allocation_callbacks.c)
+add_executable(allocation_callbacks allocation_callbacks.c)
 target_compile_options    (allocation_callbacks PRIVATE ${COMPILE_OPTIONS})
 target_include_directories(allocation_callbacks PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
 
 # sort
-add_library(sort STATIC sort.c)
+add_executable(sort sort.c)
 target_compile_options    (sort PRIVATE ${COMPILE_OPTIONS})
 target_include_directories(sort PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
 
+# search
+add_executable(search search.c)
+target_compile_options    (search PRIVATE ${COMPILE_OPTIONS})
+target_include_directories(search PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
+
 # results
-add_library(results STATIC results.c)
+add_executable(results results.c)
 target_compile_options    (results PRIVATE ${COMPILE_OPTIONS})
 target_include_directories(results PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
