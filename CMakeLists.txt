@@ -67,3 +67,8 @@ target_include_directories(search PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(results results.c)
 target_compile_options    (results PRIVATE ${COMPILE_OPTIONS})
 target_include_directories(results PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
+
+# yield
+add_executable(yield yield.c)
+target_compile_options    (yield PRIVATE ${COMPILE_OPTIONS})
+target_include_directories(yield PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
