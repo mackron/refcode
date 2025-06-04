@@ -214,7 +214,7 @@ unsigned int lzcnt64_gcc_builtin(unsigned long long x)
 }
 #endif
 
-int has_lzcnt_hard()
+int has_lzcnt_hard(void)
 {
 #if defined(ARCH_X86) || defined(ARCH_X64)
     int info[4] = {0};
