@@ -72,3 +72,8 @@ target_include_directories(results PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(yield yield.c)
 target_compile_options    (yield PRIVATE ${COMPILE_OPTIONS})
 target_include_directories(yield PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})
+
+# lzcnt
+add_executable(lzcnt lzcnt.c)
+target_compile_options    (lzcnt PRIVATE ${COMPILE_OPTIONS})
+target_include_directories(lzcnt PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR})

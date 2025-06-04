@@ -201,7 +201,7 @@ unsigned int lzcnt32_gcc_builtin(unsigned int x)
         return 32;
     }
 
-    return (unsigned int)__builtin_clzl((unsigned long)x);
+    return (unsigned int)__builtin_clz(x);
 }
 
 unsigned int lzcnt64_gcc_builtin(unsigned long long x)
