@@ -63,6 +63,7 @@ typedef enum
     NS_IN_PROGRESS                   = -50,
     NS_CANCELLED                     = -51,
     NS_MEMORY_ALREADY_MAPPED         = -52,
+    NS_DIFFERENT_DEVICE              = -53,
     NS_CHECKSUM_MISMATCH             = -100,
     NS_NO_BACKEND                    = -101,
 
@@ -144,6 +145,7 @@ NS_API const char* ns_result_to_string(ns_result result)
         case NS_IN_PROGRESS:                   return "Operation in progress";
         case NS_CANCELLED:                     return "Operation cancelled";
         case NS_MEMORY_ALREADY_MAPPED:         return "Memory already mapped";
+        case NS_DIFFERENT_DEVICE:              return "Different device";
         default:                               return "Unknown error";
     }
 }
@@ -202,6 +204,9 @@ NS_API ns_result ns_result_from_errno(int error)
 #endif
 #ifdef EEXIST
     else if (error == EEXIST) { return NS_ALREADY_EXISTS; }
+#endif
+#ifdef EXDEV
+    else if (error == EXDEV) { return NS_DIFFERENT_DEVICE; }
 #endif
 #ifdef ENODEV
     else if (error == ENODEV) { return NS_DOES_NOT_EXIST; }
@@ -397,19 +402,37 @@ NS_API ns_result ns_result_from_GetLastError(void)
     switch (GetLastError())
     {
         case ERROR_SUCCESS:                return NS_SUCCESS;
-        case ERROR_INVALID_FUNCTION:       return NS_INVALID_OPERATION;
-        case ERROR_FILE_NOT_FOUND:         return NS_DOES_NOT_EXIST;
-        case ERROR_PATH_NOT_FOUND:         return NS_DOES_NOT_EXIST;
-        case ERROR_TOO_MANY_OPEN_FILES:    return NS_TOO_MANY_OPEN_FILES;
-        case ERROR_ACCESS_DENIED:          return NS_ACCESS_DENIED;
-        case ERROR_INVALID_HANDLE:         return NS_INVALID_ARGS;
         case ERROR_NOT_ENOUGH_MEMORY:      return NS_OUT_OF_MEMORY;
         case ERROR_OUTOFMEMORY:            return NS_OUT_OF_MEMORY;
+        case ERROR_BUSY:                   return NS_BUSY;
+        case ERROR_SEM_TIMEOUT:            return NS_TIMEOUT;
+        case ERROR_ALREADY_EXISTS:         return NS_ALREADY_EXISTS;
+        case ERROR_FILE_EXISTS:            return NS_ALREADY_EXISTS;
+        case ERROR_ACCESS_DENIED:          return NS_ACCESS_DENIED;
+        case ERROR_WRITE_PROTECT:          return NS_ACCESS_DENIED;
+        case ERROR_PRIVILEGE_NOT_HELD:     return NS_ACCESS_DENIED;
+        case ERROR_SHARING_VIOLATION:      return NS_ACCESS_DENIED;
+        case ERROR_LOCK_VIOLATION:         return NS_ACCESS_DENIED;
+        case ERROR_FILE_NOT_FOUND:         return NS_DOES_NOT_EXIST;
+        case ERROR_PATH_NOT_FOUND:         return NS_DOES_NOT_EXIST;
+        case ERROR_INVALID_NAME:           return NS_INVALID_ARGS;
+        case ERROR_BAD_PATHNAME:           return NS_INVALID_ARGS;
+        case ERROR_INVALID_PARAMETER:      return NS_INVALID_ARGS;
+        case ERROR_INVALID_HANDLE:         return NS_INVALID_ARGS;
+        case ERROR_INVALID_FUNCTION:       return NS_INVALID_OPERATION;
+        case ERROR_FILENAME_EXCED_RANGE:   return NS_PATH_TOO_LONG;
+        case ERROR_DIRECTORY:              return NS_NOT_DIRECTORY;
+        case ERROR_DIR_NOT_EMPTY:          return NS_DIRECTORY_NOT_EMPTY;
+        case ERROR_FILE_TOO_LARGE:         return NS_TOO_BIG;
+        case ERROR_DISK_FULL:              return NS_OUT_OF_RANGE;
+        case ERROR_HANDLE_EOF:             return NS_AT_END;
+        case ERROR_SEEK:                   return NS_BAD_SEEK;
+        case ERROR_OPERATION_ABORTED:      return NS_CANCELLED;
+        case ERROR_CANCELLED:              return NS_INTERRUPT;
+        case ERROR_TOO_MANY_OPEN_FILES:    return NS_TOO_MANY_OPEN_FILES;
         case ERROR_INVALID_DATA:           return NS_INVALID_DATA;
         case ERROR_NO_DATA:                return NS_NO_DATA_AVAILABLE;
-        case ERROR_OPERATION_ABORTED:      return NS_CANCELLED;
-        case ERROR_SEM_TIMEOUT:            return NS_TIMEOUT;
-        case ERROR_BUSY:                   return NS_BUSY;
+        case ERROR_NOT_SAME_DEVICE:        return NS_DIFFERENT_DEVICE;
         default:                           return NS_ERROR; /* Generic error. */
     }
 }
