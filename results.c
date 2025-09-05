@@ -69,7 +69,7 @@ typedef enum
 
     /* Non-Error Result Codes. */
     NS_NEEDS_MORE_INPUT              = 100, /* Some stream needs more input data before it can be processed. */
-    NS_HAS_MORE_OUTPUT               = 102, /* Some stream has more output data to be read, but there's not enough room in the output buffer. */
+    NS_HAS_MORE_OUTPUT               = 102  /* Some stream has more output data to be read, but there's not enough room in the output buffer. */
 } ns_result;
 /* END result.h */
 
