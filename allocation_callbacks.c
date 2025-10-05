@@ -220,6 +220,10 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
 
 NS_API void ns_aligned_free(void* p, const ns_allocation_callbacks* pAllocationCallbacks)
 {
+    if (p == NULL) {
+        return;
+    }
+
     ns_free(((void**)p)[-1], pAllocationCallbacks);
 }
 /* END allocation_callbacks.c */
