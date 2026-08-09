@@ -213,6 +213,10 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
 
     extraBytes = alignment-1 + sizeof(void*);
 
+    if (oldAlignmentOffset > extraBytes) {
+        return NULL;
+    }
+
     if (sz > (size_t)-1 - extraBytes) {
         return NULL;
     }
