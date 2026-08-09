@@ -191,9 +191,9 @@ NS_API void* ns_aligned_malloc(size_t sz, size_t alignment, const ns_allocation_
 NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_allocation_callbacks* pAllocationCallbacks)
 {
     size_t extraBytes;
+    size_t oldAlignmentOffset;
     void* pOldUnaligned;
     void* pNewUnaligned;
-    void* pOldAligned;
     void* pNewAligned;
 
     if (alignment == 0 || (alignment & (alignment - 1)) != 0) {
@@ -204,8 +204,8 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
         return ns_aligned_malloc(sz, alignment, pAllocationCallbacks);
     }
 
-    pOldAligned   = p;
     pOldUnaligned = ((void**)p)[-1];
+    oldAlignmentOffset = (size_t)((unsigned char*)p - (unsigned char*)pOldUnaligned);
 
     if (alignment - 1 > (size_t)-1 - sizeof(void*)) {
         return NULL;
@@ -224,9 +224,9 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
 
     pNewAligned = (void*)(((ns_uintptr)pNewUnaligned + extraBytes) & ~((ns_uintptr)(alignment-1)));
 
-    if (pNewUnaligned != pOldUnaligned) {
+    if (pNewAligned != (unsigned char*)pNewUnaligned + oldAlignmentOffset) {
         void* pDst = pNewAligned;
-        void* pSrc = (unsigned char*)pNewUnaligned + sizeof(void*) + ((ns_uintptr)pOldAligned - ((ns_uintptr)pOldUnaligned + sizeof(void*)));
+        void* pSrc = (unsigned char*)pNewUnaligned + oldAlignmentOffset;
         NS_MOVE_MEMORY(pDst, pSrc, sz);
     }
 
