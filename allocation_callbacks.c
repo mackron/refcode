@@ -163,7 +163,7 @@ NS_API void* ns_aligned_malloc(size_t sz, size_t alignment, const ns_allocation_
     void* pUnaligned;
     void* pAligned;
 
-    if (alignment == 0) {
+    if (alignment == 0 || (alignment & (alignment - 1)) != 0) {
         return 0;
     }
 
@@ -196,7 +196,7 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
     void* pOldAligned;
     void* pNewAligned;
 
-    if (alignment == 0) {
+    if (alignment == 0 || (alignment & (alignment - 1)) != 0) {
         return 0;
     }
 
