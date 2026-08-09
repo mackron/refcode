@@ -63,6 +63,13 @@ NS_API void  ns_aligned_free(void* p, const ns_allocation_callbacks* pAllocation
 #define NS_FREE(p) free(p)
 #endif
 
+typedef struct
+{
+    void* pUnaligned;
+    size_t size;
+    size_t alignment;
+} ns_aligned_allocation_header;
+
 static void* ns_malloc_default(size_t sz, void* pUserData)
 {
     NS_UNUSED(pUserData);
@@ -162,16 +169,17 @@ NS_API void* ns_aligned_malloc(size_t sz, size_t alignment, const ns_allocation_
     size_t extraBytes;
     void* pUnaligned;
     void* pAligned;
+    ns_aligned_allocation_header* pHeader;
 
     if (alignment == 0 || (alignment & (alignment - 1)) != 0) {
         return 0;
     }
 
-    if (alignment - 1 > (size_t)-1 - sizeof(void*)) {
+    if (alignment - 1 > (size_t)-1 - sizeof(ns_aligned_allocation_header)) {
         return NULL;
     }
 
-    extraBytes = alignment-1 + sizeof(void*);
+    extraBytes = alignment-1 + sizeof(ns_aligned_allocation_header);
 
     if (sz > (size_t)-1 - extraBytes) {
         return NULL;
@@ -183,7 +191,10 @@ NS_API void* ns_aligned_malloc(size_t sz, size_t alignment, const ns_allocation_
     }
 
     pAligned = (void*)(((ns_uintptr)pUnaligned + extraBytes) & ~((ns_uintptr)(alignment-1)));
-    ((void**)pAligned)[-1] = pUnaligned;
+    pHeader = (ns_aligned_allocation_header*)((unsigned char*)pAligned - sizeof(*pHeader));
+    pHeader->pUnaligned = pUnaligned;
+    pHeader->size       = sz;
+    pHeader->alignment  = alignment;
 
     return pAligned;
 }
@@ -192,9 +203,11 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
 {
     size_t extraBytes;
     size_t oldAlignmentOffset;
+    size_t oldSize;
     void* pOldUnaligned;
     void* pNewUnaligned;
     void* pNewAligned;
+    ns_aligned_allocation_header* pHeader;
 
     if (alignment == 0 || (alignment & (alignment - 1)) != 0) {
         return 0;
@@ -204,14 +217,21 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
         return ns_aligned_malloc(sz, alignment, pAllocationCallbacks);
     }
 
-    pOldUnaligned = ((void**)p)[-1];
-    oldAlignmentOffset = (size_t)((unsigned char*)p - (unsigned char*)pOldUnaligned);
+    pHeader = (ns_aligned_allocation_header*)((unsigned char*)p - sizeof(*pHeader));
+    pOldUnaligned = pHeader->pUnaligned;
+    oldSize = pHeader->size;
 
-    if (alignment - 1 > (size_t)-1 - sizeof(void*)) {
+    if (alignment != pHeader->alignment) {
         return NULL;
     }
 
-    extraBytes = alignment-1 + sizeof(void*);
+    oldAlignmentOffset = (size_t)((unsigned char*)p - (unsigned char*)pOldUnaligned);
+
+    if (alignment - 1 > (size_t)-1 - sizeof(ns_aligned_allocation_header)) {
+        return NULL;
+    }
+
+    extraBytes = alignment-1 + sizeof(ns_aligned_allocation_header);
 
     if (oldAlignmentOffset > extraBytes) {
         return NULL;
@@ -231,21 +251,27 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
     if (pNewAligned != (unsigned char*)pNewUnaligned + oldAlignmentOffset) {
         void* pDst = pNewAligned;
         void* pSrc = (unsigned char*)pNewUnaligned + oldAlignmentOffset;
-        NS_MOVE_MEMORY(pDst, pSrc, sz);
+        NS_MOVE_MEMORY(pDst, pSrc, (oldSize < sz) ? oldSize : sz);
     }
 
-    ((void**)pNewAligned)[-1] = pNewUnaligned;
+    pHeader = (ns_aligned_allocation_header*)((unsigned char*)pNewAligned - sizeof(*pHeader));
+    pHeader->pUnaligned = pNewUnaligned;
+    pHeader->size       = sz;
+    pHeader->alignment  = alignment;
 
     return pNewAligned;
 }
 
 NS_API void ns_aligned_free(void* p, const ns_allocation_callbacks* pAllocationCallbacks)
 {
+    ns_aligned_allocation_header* pHeader;
+
     if (p == NULL) {
         return;
     }
 
-    ns_free(((void**)p)[-1], pAllocationCallbacks);
+    pHeader = (ns_aligned_allocation_header*)((unsigned char*)p - sizeof(*pHeader));
+    ns_free(pHeader->pUnaligned, pAllocationCallbacks);
 }
 /* END allocation_callbacks.c */
 
