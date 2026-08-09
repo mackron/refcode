@@ -207,13 +207,14 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
     }
 
     pNewAligned = (void*)(((ns_uintptr)pNewUnaligned + extraBytes) & ~((ns_uintptr)(alignment-1)));
-    ((void**)pNewAligned)[-1] = pNewUnaligned;
 
     if (pNewUnaligned != pOldUnaligned) {
         void* pDst = pNewAligned;
         void* pSrc = (unsigned char*)pNewUnaligned + sizeof(void*) + ((ns_uintptr)pOldAligned - ((ns_uintptr)pOldUnaligned + sizeof(void*)));
         NS_MOVE_MEMORY(pDst, pSrc, sz);
     }
+
+    ((void**)pNewAligned)[-1] = pNewUnaligned;
 
     return pNewAligned;
 }
