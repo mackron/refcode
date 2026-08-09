@@ -288,6 +288,8 @@ typedef struct
     size_t reallocCount;
     size_t freeCount;
     size_t totalAllocated;
+    size_t allocationSize;
+    int allocationMoved;
 } test_allocator_state;
 
 static void* test_malloc(size_t sz, void* pUserData)
@@ -300,6 +302,44 @@ static void* test_malloc(size_t sz, void* pUserData)
     
     p = NS_MALLOC(sz);
     return p;
+}
+
+static void* test_moving_malloc(size_t sz, void* pUserData)
+{
+    test_allocator_state* pState = (test_allocator_state*)pUserData;
+    void* p;
+
+    pState->mallocCount++;
+    pState->totalAllocated += sz;
+
+    p = NS_MALLOC(sz);
+    if (p != NULL) {
+        pState->allocationSize = sz;
+    }
+
+    return p;
+}
+
+static void* test_moving_realloc(void* p, size_t sz, void* pUserData)
+{
+    test_allocator_state* pState = (test_allocator_state*)pUserData;
+    size_t copySize;
+    void* pNew;
+
+    pState->reallocCount++;
+
+    pNew = NS_MALLOC(sz);
+    if (pNew == NULL) {
+        return NULL;
+    }
+
+    copySize = (pState->allocationSize < sz) ? pState->allocationSize : sz;
+    NS_MOVE_MEMORY(pNew, p, copySize);
+    pState->allocationMoved = (pNew != p);
+    NS_FREE(p);
+
+    pState->allocationSize = sz;
+    return pNew;
 }
 
 static void* test_realloc(void* p, size_t sz, void* pUserData)
@@ -399,6 +439,7 @@ static int test_custom_allocator(void)
     test_allocator_state state;
     ns_allocation_callbacks callbacks;
     void* p;
+    void* p2;
     
     printf("Testing custom allocator...\n");
     
@@ -421,11 +462,14 @@ static int test_custom_allocator(void)
         return 0;
     }
     
-    p = ns_realloc(p, 200, &callbacks);
-    if (p == NULL) {
+    p2 = ns_realloc(p, 200, &callbacks);
+    if (p2 == NULL) {
         printf("  FAILED: custom realloc returned NULL\n");
+        ns_free(p, &callbacks);
         return 0;
     }
+
+    p = p2;
     
     if (state.reallocCount != 1) {
         printf("  FAILED: reallocCount = %lu, expected 1\n", (unsigned long)state.reallocCount);
@@ -530,36 +574,34 @@ static int test_aligned_realloc(void)
 
 static int test_aligned_realloc_different_pointer(void)
 {
-    void* pOriginal;
+    test_allocator_state state;
+    ns_allocation_callbacks callbacks;
     void* p;
     void* p2;
-    void* pOriginalUnaligned;
-    void* pNewUnaligned;
     size_t alignment;
     size_t i;
     unsigned char* pBytes;
     size_t initialSize;
     size_t newSize;
-    int attempts;
-    int maxAttempts;
-    int pointerChanged;
     
     printf("Testing aligned realloc with pointer change...\n");
     
     alignment = 64;
     initialSize = 64;
-    newSize = 1024;
-    maxAttempts = 25;
-    pointerChanged = 0;
+    newSize = 2048;
+
+    NS_ZERO_MEMORY(&state, sizeof(state));
+
+    callbacks.pUserData = &state;
+    callbacks.onMalloc  = test_moving_malloc;
+    callbacks.onRealloc = test_moving_realloc;
+    callbacks.onFree    = test_free;
     
-    p = ns_aligned_malloc(initialSize, alignment, NULL);
+    p = ns_aligned_malloc(initialSize, alignment, &callbacks);
     if (p == NULL) {
         printf("  FAILED: aligned_malloc returned NULL\n");
         return 0;
     }
-    
-    pOriginal = p;
-    pOriginalUnaligned = ((void**)p)[-1];
     
     /* Write unique data pattern */
     pBytes = (unsigned char*)p;
@@ -567,63 +609,42 @@ static int test_aligned_realloc_different_pointer(void)
         pBytes[i] = (unsigned char)((i * 7 + 13) & 0xFF);
     }
     
-    /* Keep doubling the size until the underlying pointer changes */
-    for (attempts = 0; attempts < maxAttempts; attempts++) {
-        newSize *= 2;
-        
-        p2 = ns_aligned_realloc(p, newSize, alignment, NULL);
-        if (p2 == NULL) {
-            printf("  FAILED: aligned_realloc returned NULL at size %lu\n", (unsigned long)newSize);
-            ns_aligned_free(p, NULL);
-            return 0;
-        }
-        
-        /* Check alignment of new pointer */
-        if (((ns_uintptr)p2 & (alignment - 1)) != 0) {
-            printf("  FAILED: reallocated pointer not aligned to %lu bytes\n", (unsigned long)alignment);
-            ns_aligned_free(p2, NULL);
-            return 0;
-        }
-        
-        /* Verify all original data was preserved */
-        pBytes = (unsigned char*)p2;
-        for (i = 0; i < initialSize; i++) {
-            unsigned char expected = (unsigned char)((i * 7 + 13) & 0xFF);
-            if (pBytes[i] != expected) {
-                printf("  FAILED: data not preserved after realloc at index %lu (got %u, expected %u)\n", 
-                       (unsigned long)i, (unsigned int)pBytes[i], (unsigned int)expected);
-                printf("          Old pointer: %p, New pointer: %p\n", (void*)p, (void*)p2);
-                ns_aligned_free(p2, NULL);
-                return 0;
-            }
-        }
-        
-        /* Check if the underlying unaligned pointer changed */
-        pNewUnaligned = ((void**)p2)[-1];
-        if (pNewUnaligned != pOriginalUnaligned) {
-            pointerChanged = 1;
-            printf("  INFO: Underlying pointer changed after %d realloc(s) at size %lu bytes\n", 
-                   attempts + 1, (unsigned long)newSize);
-            printf("        Original unaligned: %p, New unaligned: %p\n", 
-                   (void*)pOriginalUnaligned, (void*)pNewUnaligned);
-            printf("        Original aligned: %p, New aligned: %p\n", 
-                   (void*)pOriginal, (void*)p2);
-            break;
-        }
-        
-        /* Update p for next iteration */
-        p = p2;
-    }
-    
-    /* Verify that we actually got a different pointer */
-    if (!pointerChanged) {
-        printf("  FAILED: underlying pointer never changed after %d attempts (final size: %lu bytes)\n", 
-               maxAttempts, (unsigned long)newSize);
-        ns_aligned_free(p2, NULL);
+    p2 = ns_aligned_realloc(p, newSize, alignment, &callbacks);
+    if (p2 == NULL) {
+        printf("  FAILED: aligned_realloc returned NULL\n");
+        ns_aligned_free(p, &callbacks);
         return 0;
     }
-    
-    ns_aligned_free(p2, NULL);
+
+    if (!state.allocationMoved) {
+        printf("  FAILED: allocation did not move\n");
+        ns_aligned_free(p2, &callbacks);
+        return 0;
+    }
+
+    if (((ns_uintptr)p2 & (alignment - 1)) != 0) {
+        printf("  FAILED: reallocated pointer not aligned to %lu bytes\n", (unsigned long)alignment);
+        ns_aligned_free(p2, &callbacks);
+        return 0;
+    }
+
+    pBytes = (unsigned char*)p2;
+    for (i = 0; i < initialSize; i++) {
+        unsigned char expected = (unsigned char)((i * 7 + 13) & 0xFF);
+        if (pBytes[i] != expected) {
+            printf("  FAILED: data not preserved after realloc at index %lu\n", (unsigned long)i);
+            ns_aligned_free(p2, &callbacks);
+            return 0;
+        }
+    }
+
+    if (state.reallocCount != 1) {
+        printf("  FAILED: reallocCount = %lu, expected 1\n", (unsigned long)state.reallocCount);
+        ns_aligned_free(p2, &callbacks);
+        return 0;
+    }
+
+    ns_aligned_free(p2, &callbacks);
     
     printf("  PASSED\n");
     return 1;
@@ -653,6 +674,69 @@ static int test_aligned_realloc_from_null(void)
     
     ns_aligned_free(p, NULL);
     
+    printf("  PASSED\n");
+    return 1;
+}
+
+static int test_aligned_realloc_rejected_requests(void)
+{
+    void* p;
+    void* p2;
+    size_t i;
+    unsigned char* pBytes;
+
+    printf("Testing rejected aligned realloc requests...\n");
+
+    p = ns_aligned_malloc(32, 64, NULL);
+    if (p == NULL) {
+        printf("  FAILED: aligned_malloc returned NULL\n");
+        return 0;
+    }
+
+    pBytes = (unsigned char*)p;
+    for (i = 0; i < 32; i++) {
+        pBytes[i] = (unsigned char)(i + 1);
+    }
+
+    p2 = ns_aligned_realloc(p, 64, 32, NULL);
+    if (p2 != NULL) {
+        printf("  FAILED: changed alignment was accepted\n");
+        ns_aligned_free(p2, NULL);
+        return 0;
+    }
+
+    p2 = ns_aligned_realloc(p, (size_t)-1, 64, NULL);
+    if (p2 != NULL) {
+        printf("  FAILED: overflowing size was accepted\n");
+        ns_aligned_free(p2, NULL);
+        return 0;
+    }
+
+    pBytes = (unsigned char*)p;
+    for (i = 0; i < 32; i++) {
+        if (pBytes[i] != (unsigned char)(i + 1)) {
+            printf("  FAILED: rejected realloc changed original data\n");
+            ns_aligned_free(p, NULL);
+            return 0;
+        }
+    }
+
+    ns_aligned_free(p, NULL);
+
+    p = ns_aligned_malloc((size_t)-1, 64, NULL);
+    if (p != NULL) {
+        printf("  FAILED: overflowing allocation size was accepted\n");
+        ns_aligned_free(p, NULL);
+        return 0;
+    }
+
+    p = ns_aligned_malloc(32, 3, NULL);
+    if (p != NULL) {
+        printf("  FAILED: unsupported alignment was accepted\n");
+        ns_aligned_free(p, NULL);
+        return 0;
+    }
+
     printf("  PASSED\n");
     return 1;
 }
@@ -708,6 +792,7 @@ int main(int argc, char** argv)
     totalTests++; if (test_aligned_realloc()) passedTests++;
     totalTests++; if (test_aligned_realloc_different_pointer()) passedTests++;
     totalTests++; if (test_aligned_realloc_from_null()) passedTests++;
+    totalTests++; if (test_aligned_realloc_rejected_requests()) passedTests++;
     totalTests++; if (test_free_null()) passedTests++;
     totalTests++; if (test_allocation_callbacks_init()) passedTests++;
     
