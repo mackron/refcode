@@ -328,7 +328,7 @@ static void* test_moving_realloc(void* p, size_t sz, void* pUserData)
 
     pState->reallocCount++;
 
-    pNew = NS_MALLOC(sz);
+    pNew = NS_MALLOC(sz);   /* Intentionally using NS_MALLOC() instead of NS_REALLOC() to ensure we always get a new pointer for the sake of the test. */
     if (pNew == NULL) {
         return NULL;
     }
