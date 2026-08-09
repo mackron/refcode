@@ -167,7 +167,15 @@ NS_API void* ns_aligned_malloc(size_t sz, size_t alignment, const ns_allocation_
         return 0;
     }
 
+    if (alignment - 1 > (size_t)-1 - sizeof(void*)) {
+        return NULL;
+    }
+
     extraBytes = alignment-1 + sizeof(void*);
+
+    if (sz > (size_t)-1 - extraBytes) {
+        return NULL;
+    }
 
     pUnaligned = ns_malloc(sz + extraBytes, pAllocationCallbacks);
     if (pUnaligned == NULL) {
@@ -199,7 +207,15 @@ NS_API void* ns_aligned_realloc(void* p, size_t sz, size_t alignment, const ns_a
     pOldAligned   = p;
     pOldUnaligned = ((void**)p)[-1];
 
+    if (alignment - 1 > (size_t)-1 - sizeof(void*)) {
+        return NULL;
+    }
+
     extraBytes = alignment-1 + sizeof(void*);
+
+    if (sz > (size_t)-1 - extraBytes) {
+        return NULL;
+    }
 
     pNewUnaligned = ns_realloc(pOldUnaligned, sz + extraBytes, pAllocationCallbacks);
     if (pNewUnaligned == NULL) {
