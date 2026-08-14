@@ -72,7 +72,8 @@ operations, including a spinlock implementation. Indeed, this library is generat
     !defined(SPINLOCK_LEGACY_MSVC_ASM) && \
     !defined(SPINLOCK_MODERN_GCC) && \
     !defined(SPINLOCK_LEGACY_GCC) && \
-    !defined(SPINLOCK_LEGACY_GCC_ASM)
+    !defined(SPINLOCK_LEGACY_GCC_ASM) && \
+    !defined(SPINLOCK_CHIBICC)
     #if defined(_MSC_VER) || defined(__WATCOMC__) || defined(__DMC__) || defined(__BORLANDC__)
         #if (defined(_MSC_VER) && _MSC_VER > 1600)
             #define SPINLOCK_MODERN_MSVC
@@ -85,12 +86,12 @@ operations, including a spinlock implementation. Indeed, this library is generat
         #endif
     #elif (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))) || defined(__clang__)
         #define SPINLOCK_MODERN_GCC
+    #elif (defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1)))
+        #define SPINLOCK_LEGACY_GCC
+    #elif defined(__chibicc__)
+        #define SPINLOCK_CHIBICC
     #else
-        #if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 1))
-            #define SPINLOCK_LEGACY_GCC
-        #else
-            #define SPINLOCK_LEGACY_GCC_ASM
-        #endif
+        #define SPINLOCK_LEGACY_GCC_ASM
     #endif
 #endif
 
@@ -103,6 +104,30 @@ operations, including a spinlock implementation. Indeed, this library is generat
     #define spinlock_memory_order_release  4
     #define spinlock_memory_order_acq_rel  5
     #define spinlock_memory_order_seq_cst  6
+
+    #define SPINLOCK_MSVC_ARM_INTRINSIC_NORETURN(dst, src, order, intrin, c89atomicType, msvcType)   \
+        switch (order) \
+        { \
+            case spinlock_memory_order_relaxed: \
+            { \
+                intrin##_nf((volatile msvcType*)dst, (msvcType)src); \
+            } break; \
+            case spinlock_memory_order_consume: \
+            case spinlock_memory_order_acquire: \
+            { \
+                intrin##_acq((volatile msvcType*)dst, (msvcType)src); \
+            } break; \
+            case spinlock_memory_order_release: \
+            { \
+                intrin##_rel((volatile msvcType*)dst, (msvcType)src); \
+            } break; \
+            case spinlock_memory_order_acq_rel: \
+            case spinlock_memory_order_seq_cst: \
+            default: \
+            { \
+                intrin((volatile msvcType*)dst, (msvcType)src); \
+            } break; \
+        }
 
     #define SPINLOCK_MSVC_ARM_INTRINSIC(dst, src, order, intrin, c89atomicType, msvcType)   \
         c89atomicType result; \
@@ -150,7 +175,7 @@ operations, including a spinlock implementation. Indeed, this library is generat
     {
         #if defined(SPINLOCK_ARM)
         {
-            SPINLOCK_MSVC_ARM_INTRINSIC(dst, 0, order, _InterlockedExchange, spinlock_t, long);
+            SPINLOCK_MSVC_ARM_INTRINSIC_NORETURN(dst, 0, order, _InterlockedExchange, spinlock_t, long);
         }
         #else
         {
@@ -299,9 +324,9 @@ operations, including a spinlock implementation. Indeed, this library is generat
 
     
     #if defined(SPINLOCK_X86)
-        #define spinlock_thread_fence(order) __asm__ __volatile__("lock; addl , (%%esp)" ::: "memory")
+        #define spinlock_thread_fence(order) __asm__ __volatile__("lock; addl $0, (%%esp)" ::: "memory")
     #elif defined(SPINLOCK_X64)
-        #define spinlock_thread_fence(order) __asm__ __volatile__("lock; addq , (%%rsp)" ::: "memory")
+        #define spinlock_thread_fence(order) __asm__ __volatile__("lock; addq $0, (%%rsp)" ::: "memory")
     #else
         #error Unsupported architecture.
     #endif
@@ -369,12 +394,12 @@ operations, including a spinlock implementation. Indeed, this library is generat
             
             if (order == spinlock_memory_order_relaxed) {
                 __asm__ __volatile__(
-                    "movl , %0"
+                    "movl $0, %0"
                     : "=m"(*dst)    
                 );
             } else if (order == spinlock_memory_order_release) {
                 __asm__ __volatile__(
-                    "movl , %0"
+                    "movl $0, %0"
                     : "=m"(*dst)    
                     :
                     : "memory"
@@ -419,6 +444,30 @@ operations, including a spinlock implementation. Indeed, this library is generat
             #error Unsupported architecture.
         }
         #endif
+    }
+#endif
+
+#if defined(SPINLOCK_CHIBICC)
+    #define spinlock_memory_order_relaxed                   0
+    #define spinlock_memory_order_consume                   1
+    #define spinlock_memory_order_acquire                   2
+    #define spinlock_memory_order_release                   3
+    #define spinlock_memory_order_acq_rel                   4
+    #define spinlock_memory_order_seq_cst                   5
+
+    typedef unsigned int spinlock_t;
+
+    #define spinlock_test_and_set_explicit(dst, order) __builtin_atomic_exchange(dst, 1)
+    #define spinlock_clear_explicit(dst, order)        __builtin_atomic_exchange(dst, 0)
+
+    static SPINLOCK_INLINE spinlock_t spinlock_load_explicit(volatile const spinlock_t* dst, spinlock_memory_order order)
+    {
+        spinlock_t expected;
+
+        expected = 0;
+        __builtin_compare_and_swap(dst, &expected, 0);
+
+        return expected;
     }
 #endif
 
